@@ -7,8 +7,17 @@
 //
 
 #import <UIKit/UIKit.h>
+#import <Vision/Vision.h>
+#import <VisionKit/VisionKit.h>
 
-@interface ViewController : UIViewController
+@interface ViewController : UIViewController<VNDocumentCameraViewControllerDelegate> {
+    
+}
+
+@property (weak, nonatomic) IBOutlet UITextView *textView;
+@property (weak, nonatomic) IBOutlet UIActivityIndicatorView *activityIndicator;
+
+
 
 
 @end

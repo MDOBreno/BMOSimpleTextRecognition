@@ -12,11 +12,109 @@
 
 @end
 
+
+
 @implementation ViewController
+
+NSMutableArray *requests;
+dispatch_queue_t textRecognitionWorkQueue;
+
+UIActivityIndicatorView *activityIndicator;
+NSString *resultingText;
 
 - (void)viewDidLoad {
     [super viewDidLoad];
     // Do any additional setup after loading the view.
+    
+    
+    // Solicitar que o Vision seja executado em cada página do documento digitalizado.
+    requests = [[NSMutableArray alloc] init];
+    
+    // Cria a fila de expedição para executar solicitações do Vision.
+    dispatch_queue_attr_t qos = dispatch_queue_attr_make_with_qos_class(DISPATCH_QUEUE_SERIAL, QOS_CLASS_USER_INITIATED, -1);
+    textRecognitionWorkQueue = dispatch_queue_create("TextRecognitionQueue", qos);
+    
+    resultingText = @"";
+    
+    
+    
+    [self setupVision];
+}
+
+// Solicita o Setup do Vision, pois a solicitação pode ser reutilizada
+- (void)setupVision {
+    VNRecognizeTextRequest *textRecognitionRequest = [[VNRecognizeTextRequest alloc] initWithCompletionHandler:^(VNRequest * _Nonnull request, NSError * _Nullable error) {
+        
+        NSMutableArray *observations;
+        @try {
+            observations  = [[NSMutableArray alloc] init];
+            for (VNRecognizedTextObservation *obs in request.results) {
+                [observations addObject:(VNRecognizedTextObservation *)obs];
+            }
+        }
+        @catch (NSException *exception) {
+            NSLog(@"As observações são de um tipo inesperado.");
+        }
+        @finally {
+            //NSLog(@"Condição final");
+        }
+        
+        // Concatena o texto reconhecido de todas as observações.
+        NSInteger *maximumCandidates = 1;
+        for (VNRecognizedTextObservation *observation in observations) {
+            VNRecognizedText *candidate = [observation topCandidates:maximumCandidates].firstObject;
+            resultingText = [NSString stringWithFormat:@"%@%@",
+                             resultingText,
+                             candidate.string];
+        }
+    }];
+    // Especifica o nível de reconhecimento
+    textRecognitionRequest.recognitionLevel = VNRequestTextRecognitionLevelAccurate;
+    [requests addObject:textRecognitionRequest];
+}
+
+- (IBAction)scanReceipts:(id)sender {
+    //Cria uma instancia da Classe de Leitura de Docs da Vision, e abre ela
+    VNDocumentCameraViewController *documentCameraViewController = [[VNDocumentCameraViewController alloc] init];
+    documentCameraViewController.delegate = self;
+    
+    [self presentModalViewController:documentCameraViewController animated:YES];
+}
+
+
+// MARK: VNDocumentCameraViewControllerDelegate
+
+
+- (void)documentCameraViewController:(VNDocumentCameraViewController *)controller didFinishWithScan:(VNDocumentCameraScan *)scan {
+    // Limpe qualquer texto existente.
+    self.textView.text = @"";
+    // Descartar a câmera de documentos
+    [controller dismissModalViewControllerAnimated:YES];
+    
+    activityIndicator.hidden = NO;
+    
+    dispatch_async(textRecognitionWorkQueue, ^{
+        resultingText = @"";
+        for (int pageIndex=0; pageIndex<scan.pageCount; pageIndex++) {
+            CIImage *image = [scan imageOfPageAtIndex:pageIndex].CIImage;
+            NSDictionary *d = [[NSDictionary alloc] init];
+            VNImageRequestHandler *requestHandler = [[VNImageRequestHandler alloc] initWithCIImage:image options:d];
+            NSError *error = nil;
+            @try {
+                [requestHandler performRequests:requests error:&error];
+            }
+            @catch (NSException *exception) {
+                NSLog(@"%@", exception);
+            }
+            @finally {
+                //NSLog(@"Condição final");
+            }
+        }
+        dispatch_async(dispatch_get_main_queue(), ^{
+            self.textView.text = resultingText;
+            activityIndicator.hidden = YES;
+        });
+    });
 }
 
 
