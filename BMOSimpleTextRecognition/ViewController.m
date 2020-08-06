@@ -16,10 +16,9 @@
 
 @implementation ViewController
 
-NSMutableArray *requests;
+NSArray<VNRequest *> *requests;
 dispatch_queue_t textRecognitionWorkQueue;
 
-UIActivityIndicatorView *activityIndicator;
 NSString *resultingText;
 
 - (void)viewDidLoad {
@@ -28,7 +27,7 @@ NSString *resultingText;
     
     
     // Solicitar que o Vision seja executado em cada página do documento digitalizado.
-    requests = [[NSMutableArray alloc] init];
+    requests = [[NSArray<VNRequest *> alloc] init];
     
     // Cria a fila de expedição para executar solicitações do Vision.
     dispatch_queue_attr_t qos = dispatch_queue_attr_make_with_qos_class(DISPATCH_QUEUE_SERIAL, QOS_CLASS_USER_INITIATED, -1);
@@ -70,7 +69,7 @@ NSString *resultingText;
     }];
     // Especifica o nível de reconhecimento
     textRecognitionRequest.recognitionLevel = VNRequestTextRecognitionLevelAccurate;
-    [requests addObject:textRecognitionRequest];
+    requests = @[textRecognitionRequest];
 }
 
 - (IBAction)scanReceipts:(id)sender {
@@ -91,14 +90,14 @@ NSString *resultingText;
     // Descartar a câmera de documentos
     [controller dismissModalViewControllerAnimated:YES];
     
-    activityIndicator.hidden = NO;
+    _activityIndicator.hidden = NO;
     
     dispatch_async(textRecognitionWorkQueue, ^{
         resultingText = @"";
         for (int pageIndex=0; pageIndex<scan.pageCount; pageIndex++) {
-            CIImage *image = [scan imageOfPageAtIndex:pageIndex].CIImage;
+            struct CGImage *image = [scan imageOfPageAtIndex:pageIndex].CGImage;
             NSDictionary *d = [[NSDictionary alloc] init];
-            VNImageRequestHandler *requestHandler = [[VNImageRequestHandler alloc] initWithCIImage:image options:d];
+            VNImageRequestHandler *requestHandler = [[VNImageRequestHandler alloc] initWithCGImage:image options:d];
             NSError *error = nil;
             @try {
                 [requestHandler performRequests:requests error:&error];
@@ -107,12 +106,12 @@ NSString *resultingText;
                 NSLog(@"%@", exception);
             }
             @finally {
-                //NSLog(@"Condição final");
+                NSLog(@"Condição final");
             }
         }
         dispatch_async(dispatch_get_main_queue(), ^{
-            self.textView.text = resultingText;
-            activityIndicator.hidden = YES;
+            self->_textView.text = resultingText;
+            self->_activityIndicator.hidden = YES;
         });
     });
 }
