@@ -24,7 +24,11 @@ NSString *resultingText;
 - (void)viewDidLoad {
     [super viewDidLoad];
     // Do any additional setup after loading the view.
+
     
+    // Parar e esconder o Indicador de atividade do OCR
+    [self->activityIndicator stopAnimating];
+    self->activityIndicator.hidden = YES;
     
     // Solicitar que o Vision seja executado em cada página do documento digitalizado.
     requests = [[NSArray<VNRequest *> alloc] init];
@@ -86,11 +90,12 @@ NSString *resultingText;
 
 - (void)documentCameraViewController:(VNDocumentCameraViewController *)controller didFinishWithScan:(VNDocumentCameraScan *)scan {
     // Limpe qualquer texto existente.
-    self.textView.text = @"";
+    self->textView.text = @"";
     // Descartar a câmera de documentos
     [controller dismissModalViewControllerAnimated:YES];
     
-    _activityIndicator.hidden = NO;
+    self->activityIndicator.hidden = NO;
+    [self->activityIndicator startAnimating];
     
     dispatch_async(textRecognitionWorkQueue, ^{
         resultingText = @"";
@@ -110,8 +115,9 @@ NSString *resultingText;
             }
         }
         dispatch_async(dispatch_get_main_queue(), ^{
-            self->_textView.text = resultingText;
-            self->_activityIndicator.hidden = YES;
+            self->textView.text = resultingText;
+            [self->activityIndicator stopAnimating];
+            self->activityIndicator.hidden = YES;
         });
     });
 }

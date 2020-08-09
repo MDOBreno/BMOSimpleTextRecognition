@@ -11,12 +11,11 @@
 #import <VisionKit/VisionKit.h>
 
 @interface ViewController : UIViewController<VNDocumentCameraViewControllerDelegate> {
-    
+    IBOutlet UITextView *textView;
+    IBOutlet UIActivityIndicatorView *activityIndicator;
 }
 
-@property (weak, nonatomic) IBOutlet UITextView *textView;
-@property (weak, nonatomic) IBOutlet UIActivityIndicatorView *activityIndicator;
-
+- (IBAction)scanReceipts:(id)sender;
 
 
 
