@@ -63,7 +63,7 @@ NSString *resultingText;
         }
         
         // Concatena o texto reconhecido de todas as observações.
-        NSInteger *maximumCandidates = 1;
+        NSInteger maximumCandidates = 1;
         for (VNRecognizedTextObservation *observation in observations) {
             VNRecognizedText *candidate = [observation topCandidates:maximumCandidates].firstObject;
             resultingText = [NSString stringWithFormat:@"%@%@",
